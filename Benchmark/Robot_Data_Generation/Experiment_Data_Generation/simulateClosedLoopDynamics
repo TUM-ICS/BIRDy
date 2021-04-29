@@ -1,0 +1,52 @@
+function [Q, Qp, Qpp, Qd, Qpd, Qppd, Qm, Qpm, Qppm, Tau, Taum, Tau_friction, X, Xp, Xd, Xpd, Xm, Xpm] = simulateClosedLoopDynamics(State_i, Beta, robotName, Geometry, Gravity, t_i, t_f, nbCtrlSamples, nbSamples, Kp, Ki, Kd, antiWindup, limQ_L, limQ_U, limQp_L, limQp_U, limQpp_L, limQpp_U, limTau_L, limTau_U, trajectoryParameters, Q0, controllerType) %#codegen
+
+nbDOF = numel(Q0);
+t_control = linspace(t_i, t_f, nbCtrlSamples);  % Control epochs
+dt_control = (t_f-t_i)/nbCtrlSamples;
+t_sample = linspace(t_i, t_f, nbSamples); % Sampling epochs
+% dt_sample = (t_f-t_i)/nbSamples;
+sampleIndex = 1;
+
+State = zeros(numel(State_i), nbCtrlSamples); % X = [Qp;Q]
+State(:,1) = State_i;
+State_sampled = zeros(numel(State_i), nbSamples); 
+State_sampled(:,1) = State_i;
+Qpp_sampled = zeros(nbDOF, nbSamples);
+
+integralError = zeros(nbDOF,size(Kp,3)); % integral of error in position
+
+for i = 2:nbCtrlSamples
+    [augmentedDesiredState, controlInput, integralError] = computeControlInput(t_control, dt_control, State(:,i-1), i, integralError, Kp, Ki, Kd,...
+        antiWindup, limQ_L, limQ_U, limQp_L, limQp_U, limQpp_L, limQpp_U, limTau_L, limTau_U, trajectoryParameters, Q0, controllerType, false, 0);
+    timeDerivativeState = computeForwardDynamics(robotName, State(:,i-1), controlInput, Beta, Geometry, Gravity);
+    [~ , Y_i] = ode45(@(t, y) computeForwardDynamics(robotName, y, controlInput, Beta, Geometry, Gravity), [t_control(i-1) t_control(i)], State(:,i-1));
+    State(:,i) = Y_i(end,:)';
+
+    % Store variables in memory at each sampling epoch:
+    if (t_sample(sampleIndex+1)-t_control(i)) < dt_control && (t_sample(sampleIndex+1)-t_control(i)) >= 0
+        sampleIndex = sampleIndex+1;
+        Q(:,sampleIndex) = currentState(robot.nbDOF+1:end);                                               % Real joint position
+        Qp(:,sampleIndex) = timeDerivativeState(robot.nbDOF+1:end);                                       % Real joint velocity
+        Qpp(:,sampleIndex) = timeDerivativeState(1:robot.nbDOF);                                          % Real joint acceleration
+        Qd(:,sampleIndex) = desiredState(robot.nbDOF+1:end);                                              % Real joint position
+        Qpd(:,sampleIndex) = desiredState(1:robot.nbDOF);                                                 % Real joint velocity
+        Qppd(:,sampleIndex) = augmentedDesiredState(1:robot.nbDOF);                                       % Real joint acceleration
+        Qm(:,sampleIndex) = measuredState(robot.nbDOF+1:end);                                             % Joint position measured with noisy sensor (re-injected in position control loop)
+        Qpm(:,sampleIndex) = discreteTimeDerivative(Qm(:,sampleIndex),Qm(:,sampleIndex-1),dt_sample);     % Discrete time derivative of noisy joint position measurement (re-injected in position control loop)
+        Qppm(:,sampleIndex) = discreteTimeDerivative(Qpm(:,sampleIndex),Qpm(:,sampleIndex-1),dt_sample);  % Double discrete time derivative of noisy joint position measurement
+        Tau(:,sampleIndex-1) = controlInput;                                                              % Real control Torque sent to the robot (without added sensor noise but computed using noisy position measurement)
+        Taum(:,sampleIndex-1) = noisyMeasurement(controlInput, sd_tau);                                   % Control Torque measured with noisy sensor (not re-injected in position control but visible in measured identification data)
+        Tau_friction(:,sampleIndex) = friction;
+        H = feval(sprintf('HT_dh%d_world_%s', robot.nbDOF,robot.name),Q(:,sampleIndex), robot.numericalParameters.Geometry);
+        X(:,sampleIndex) = H(1:3,4);                                                                      % Real Cartesian Position
+        Xp(:,sampleIndex) = [eye(3),zeros(3)]*feval(sprintf('J_dh%d_world_%s', robot.nbDOF,robot.name),Q(:,sampleIndex), robot.numericalParameters.Geometry)*Qp(:,sampleIndex);   % Real Cartesian Velocity
+        Hd = feval(sprintf('HT_dh%d_world_%s', robot.nbDOF,robot.name),Qd(:,sampleIndex), robot.numericalParameters.Geometry);
+        Xd(:,sampleIndex) = Hd(1:3,4);                                                                   	% Desired Cartesian Position
+        Xpd(:,sampleIndex) = [eye(3),zeros(3)]*feval(sprintf('J_dh%d_world_%s', robot.nbDOF,robot.name),Qd(:,sampleIndex), robot.numericalParameters.Geometry)*Qpd(:,sampleIndex);% Desired Cartesian Velocity
+        Hm = feval(sprintf('HT_dh%d_world_%s', robot.nbDOF,robot.name),Qm(:,sampleIndex), robot.numericalParameters.Geometry);
+        Xm(:,sampleIndex) = Hm(1:3,4);                                                                    % Measured Cartesian Position (with noisy sensor)
+        Xpm(:,sampleIndex) = [eye(3),zeros(3)]*feval(sprintf('J_dh%d_world_%s', robot.nbDOF,robot.name),Qm(:,sampleIndex), robot.numericalParameters.Geometry)*Qpm(:,sampleIndex);% Measured Cartesian Velocity (with noisy sensor)
+    end
+end
+end
+

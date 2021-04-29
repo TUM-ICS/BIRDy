@@ -1,0 +1,77 @@
+/*
+ * Copyright 2015 The MathWorks, Inc.
+ */
+
+
+/* This is the main build script
+   The flat folder with the necessary JAR files is specified in the 
+   ROS_FLAT_REPOSITORY environment variable. */
+
+buildscript {
+    def commonRepository = "$System.env.ROS_COMMON_REPOSITORY"
+    def gradlePluginsRepository = "$System.env.ROS_GRADLE_PLUGINS_REPOSITORY"
+
+    repositories {
+        flatDir name: 'matlabRepo', dirs: [gradlePluginsRepository, commonRepository]
+    }
+    dependencies {
+        classpath name: 'gradle_plugins'
+        classpath name: 'commons-lang'
+        classpath name: 'commons-logging'
+    }
+}
+
+apply plugin: 'catkin'
+project.catkin.tree.generate()
+
+allprojects {
+    group 'org.ros.rosjava_messages'
+    version = project.catkin.pkg.version
+}
+
+/* Each message package will be specified as a different sub-project.
+   The flat folder with the ROS JAR files (and dependencies) is specified in the 
+   ROS_FLAT_REPOSITORY environment variable. All JAR files for existing 
+   messages are stored in the folder specified in ROS_FLAT_MSG_REPOSITORY. */
+
+subprojects {
+    apply plugin: 'ros-java'
+
+    def rosJavaRepository = "$System.env.ROS_ROSJAVA_REPOSITORY"
+    def commonRepository = "$System.env.ROS_COMMON_REPOSITORY"
+    def gradlePluginsRepository = "$System.env.ROS_GRADLE_PLUGINS_REPOSITORY"
+
+    def rosMsgRepository = "$System.env.ROS_FLAT_MSG_REPOSITORY"
+
+    repositories {
+
+        flatDir name: 'matlabRepo', dirs: [gradlePluginsRepository, commonRepository, rosJavaRepository, rosMsgRepository]   
+
+    }
+    
+    configurations {
+        all*.exclude group: 'org.ros.rosjava_bootstrap', name: 'message_generation'
+    }
+
+    dependencies {
+        // Exclude the version referencing for message_generation        
+
+        // For each message package, load all dependencies
+        compile name: 'commons-pool'
+        compile name: 'google-collect'
+        compile name: 'netty'
+        compile name: 'commons-codec'
+        compile name: 'commons-io'
+        compile name: 'commons-lang'
+        compile name: 'commons-logging'
+        compile name: 'message_generation'
+        compile name: 'gradle_plugins'
+    }
+
+}
+
+task distclean << {
+    subprojects.each { p ->
+            delete p.name
+    }
+}

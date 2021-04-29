@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+    <name>rosjava_build</name>
+    <version>1.0</version>
+    
+    <build_depend>rosjava_build_tools</build_depend>
+    <build_depend>rosjava_bootstrap</build_depend>
+    
+    <!-- Add the packages you want to build on the following lines -->
+    <!-- e.g. <build_depend>std_msgs</build_depend> -->
+<build_depend>visualization_msgs</build_depend>
+</package>

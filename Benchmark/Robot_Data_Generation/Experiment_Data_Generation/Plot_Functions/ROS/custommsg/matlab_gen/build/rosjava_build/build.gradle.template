@@ -1,0 +1,14 @@
+/*
+ * Copyright 2015 The MathWorks, Inc.
+ */
+
+try {
+    project.catkin.tree.generateMessageArtifact(project, '@name@')
+} catch (NullPointerException e) {
+    println("Couldn't find @name@ on the ROS_PACKAGE_PATH")
+}
+
+task bugfixtask << {
+    mkdir sourceSets.main.output.classesDir
+}
+jar.dependsOn(bugfixtask)
