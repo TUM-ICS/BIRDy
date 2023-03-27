@@ -84,7 +84,7 @@ You can choose which algorithm to execute and which result to send to the post-p
 
 *  If you wish to generate a new bunch of experiment data, set the "**regenerateData**" flag to "true", in the script "**run_identification_benchmark.m**". 
 *  At the next execution of the benchmarrk, the robot model will track the excitation trajectory using a noisy PID controller.
-*  PID gains and noise levels are defined for each robots in the file "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/Robot_Description_Files/<robot_name>.m**" as:
+*  PID gains and noise levels are defined for each robots in the file "**Utils/SymbolicModelData/Robot_Description_Files/<robot_name>.m**" as:
     ```matlab  
     robot.controlParameters.Kp          % Proportional gains
     robot.controlParameters.Ki          % Integral Gains
@@ -114,10 +114,10 @@ You can choose which algorithm to execute and which result to send to the post-p
 ### Adding a new robot to the benchmark
 
 This is actually pretty simple, provided that you know the Denavit Hartenberg parameters of your robot (classic or modified) and have a rough idea of its dynamic parameters. 
-Robot models are defined within dedicated files, contained in the folder "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/Robot_Description_Files**". The function "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/loadRobotModelParameters.m**" will parse the desired description file. 
+Robot models are defined within dedicated files, contained in the folder "**Utils/SymbolicModelData/Robot_Description_Files**". The function "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/loadRobotModelParameters.m**" will parse the desired description file. 
 This functon takes the name of your robot as an argument (e.g. **mySuperRobot**), and returns a "**robot**" data structure which can in turn be used in the rest of the benchmark. 
 
-To add a new robot, just create a new file in the folder "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/Robot_Description_Files**". The name of the file should be that of the robot and should follow the structure of the other robot description files of the folder:
+To add a new robot, just create a new file in the folder "**Utils/SymbolicModelData/Robot_Description_Files**". The name of the file should be that of the robot and should follow the structure of the other robot description files of the folder:
 ```matlab
         robot.name = 'mySuperRobot';                            % Name of the robot
         robot.nbDOF = 4;                                        % Number of Degrees Of Freedom (DOF)
@@ -125,7 +125,7 @@ To add a new robot, just create a new file in the folder "**Benchmark/Robot_Data
         ...
 ```
 Then add a reference to this file in the "switch" condition of **Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/loadRobotModelParameters.m**.
-Take a look at the examples already available in "**Benchmark/Robot_Data_Generation/Dynamic_Model_Generation/Robot_Description_Files**". 
+Take a look at the examples already available in "**Utils/SymbolicModelData/Robot_Description_Files**". 
 
 ### Adding a new identification algorithm to the benchmark
 
