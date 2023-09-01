@@ -74,8 +74,7 @@ if generateNewTrajectoryParameters == true
     
     while iteration<benchmarkSettings.max_traj_it && fval_final > 5
         if strcmp(alg,'fmin') % 'interior-point' (default), 'trust-region-reflective', sqp', 'sqp-legacy', 'active-set'. 
-            %options = optimoptions('fmincon','Algorithm' ,'interior-point', 'Display','iter', 'MaxFunctionEvaluations', 10000*robot.nbDOF, 'UseParallel', true);
-            options = optimoptions('fmincon','Algorithm' ,'interior-point', 'Display','iter', 'MaxFunctionEvaluations', 10, 'UseParallel', true);
+            options = optimoptions('fmincon','Algorithm' ,'interior-point', 'Display','iter', 'MaxFunctionEvaluations', 10000, 'UseParallel', true);
             [trajectoryParameters_optim,fval,exitFlag] = fmincon(fun, 0.1*(-2 + 4*rand(nbVars, 1)), [], [], Aeq, beq, [], [], nonlcon, options);
         elseif strcmp(alg,'ga')
             population = 240;
